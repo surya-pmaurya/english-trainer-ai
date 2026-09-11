@@ -58,9 +58,9 @@ function useData(url) {
 const scoreColor = (value) =>
   value >= 75 ? "text-mint" : value >= 55 ? "text-amber-500" : "text-rose-500";
 export function ProgressPage() {
-  const { data, loading, error } = useData("/progress/overview");
+  const { data, loading, error, reload } = useData("/progress/overview");
   if (loading) return <Loading />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   const scores = data?.scores || {};
   return (
     <div>
@@ -120,42 +120,93 @@ export function ProgressPage() {
   );
 }
 export function MistakesPage() {
-  const { data, loading, error } = useData("/mistakes");
+  const { data, loading, error, reload } = useData("/mistakes");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   if (loading) return <Loading />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   const mistakes = data?.mistakes || [];
+
+  const categories = ["All", ...new Set(mistakes.map((m) => m.category).filter(Boolean))];
+  const filtered = selectedCategory === "All"
+    ? mistakes
+    : mistakes.filter((m) => m.category === selectedCategory);
+
   return (
     <div>
       <PageHeading eyebrow="Learn from patterns" title="Your common mistakes" />
-      {mistakes.length === 0 ? (
+
+      {/* Category Filter Pills on Desktop and Mobile */}
+      {mistakes.length > 0 && categories.length > 2 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
+                selectedCategory === cat
+                  ? "bg-lavender text-white shadow-sm"
+                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
         <Empty
           icon={TriangleAlert}
-          title="No recurring mistakes yet"
+          title="No recurring mistakes in this category"
           copy="As you practise, helpful patterns will appear here — never every tiny imperfection."
         />
       ) : (
-        <div className="grid gap-4">
-          {mistakes.map((mistake) => (
-            <article key={mistake.id} className="surface p-5 sm:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600 dark:bg-rose-950">
-                    {mistake.category}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filtered.map((mistake) => (
+            <article key={mistake.id} className="surface p-5 sm:p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+                    {mistake.category || "Grammar"}
                   </span>
-                  <h2 className="mt-3 font-bold">{mistake.originalText}</h2>
-                  <p className="mt-1 text-sm text-mint">
-                    Better: {mistake.correctedText}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-slate-500">
-                    {mistake.explanation}
-                  </p>
+                  <span className="text-right text-xs font-semibold text-slate-400">
+                    Noticed {mistake.occurrences} {mistake.occurrences === 1 ? "time" : "times"}
+                  </span>
                 </div>
-                <span className="shrink-0 text-right">
-                  <b className="text-2xl">{mistake.occurrences}</b>
-                  <small className="block text-xs text-slate-500">
-                    times noticed
-                  </small>
-                </span>
+
+                {/* Side-by-side or stacked diff on desktop */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-rose-100 bg-rose-50/50 p-3 dark:border-rose-950 dark:bg-rose-950/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 block mb-1">
+                      What you said
+                    </span>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 line-through">
+                      {mistake.originalText}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-mint/20 bg-mint/5 p-3 dark:border-mint/30 dark:bg-mint/10">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-mint block mb-1">
+                      Better alternative
+                    </span>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {mistake.correctedText}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs leading-5 text-slate-600 dark:text-slate-400">
+                  {mistake.explanation}
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
+                <Link
+                  to="/practice?mode=grammar"
+                  className="text-xs font-bold text-lavender hover:underline"
+                >
+                  Practice this rule →
+                </Link>
               </div>
             </article>
           ))}
@@ -180,8 +231,11 @@ export function VocabularyPage() {
       setSaving(false);
     }
   };
+  const speakWord = (word) =>
+    window.speechSynthesis?.speak(new SpeechSynthesisUtterance(word));
+
   if (loading) return <Loading />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   return (
     <div>
       <PageHeading
@@ -216,25 +270,37 @@ export function VocabularyPage() {
           copy="New words suggested during practice will appear here. You can also add your own."
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {words.map((word) => (
-            <article className="surface p-5" key={word.id}>
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="text-xl font-bold">{word.word}</h2>
-                {word.mastered && (
-                  <span className="rounded-full bg-mint/10 px-2 py-1 text-xs font-bold text-mint">
-                    Mastered
-                  </span>
+            <article className="surface p-5 flex flex-col justify-between" key={word.id}>
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold">{word.word}</h2>
+                    <button
+                      type="button"
+                      onClick={() => speakWord(word.word)}
+                      className="text-slate-400 hover:text-lavender p-1 rounded-lg"
+                      title="Listen to pronunciation"
+                    >
+                      <Volume2 size={16} />
+                    </button>
+                  </div>
+                  {word.mastered && (
+                    <span className="rounded-full bg-mint/10 px-2 py-0.5 text-xs font-bold text-mint">
+                      Mastered
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  {word.meaning}
+                </p>
+                {word.example && (
+                  <p className="mt-3 border-l-2 border-lavender/50 pl-3 text-xs italic text-slate-500 dark:text-slate-400">
+                    “{word.example}”
+                  </p>
                 )}
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {word.meaning}
-              </p>
-              {word.example && (
-                <p className="mt-4 border-l-2 border-lavender pl-3 text-sm italic text-slate-500">
-                  “{word.example}”
-                </p>
-              )}
             </article>
           ))}
         </div>
@@ -243,9 +309,9 @@ export function VocabularyPage() {
   );
 }
 export function HistoryPage() {
-  const { data, loading, error } = useData("/practice/history");
+  const { data, loading, error, reload } = useData("/practice/history");
   if (loading) return <Loading />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   const sessions = data?.sessions || [];
   return (
     <div>
@@ -283,9 +349,9 @@ export function HistoryPage() {
 }
 export function SessionResultPage() {
   const { id } = useParams();
-  const { data, loading, error } = useData(`/practice/${id}`);
+  const { data, loading, error, reload } = useData(`/practice/${id}`);
   if (loading) return <Loading />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   const session = data?.session;
   return (
     <div>
@@ -294,8 +360,8 @@ export function SessionResultPage() {
           Back to history
         </Link>
       </PageHeading>
-      <div className="grid gap-7 lg:grid-cols-[.8fr_1.2fr]">
-        <section className="surface p-7">
+      <div className="grid gap-7 lg:grid-cols-[380px_1fr] items-start">
+        <section className="surface p-7 lg:sticky lg:top-24">
           <p className="text-sm font-semibold text-slate-500">Overall score</p>
           <p
             className={`mt-2 text-6xl font-bold ${scoreColor(session.overallScore)}`}
@@ -563,13 +629,40 @@ function Loading() {
     </div>
   );
 }
-function ErrorState({ message }) {
+function ErrorState({ message, onRetry }) {
+  const isAuthError =
+    message?.toLowerCase()?.includes("session") ||
+    message?.toLowerCase()?.includes("unauthenticated") ||
+    message?.toLowerCase()?.includes("log in") ||
+    message?.toLowerCase()?.includes("expired") ||
+    message?.toLowerCase()?.includes("authentication") ||
+    message?.toLowerCase()?.includes("401");
+
   return (
-    <Empty
-      icon={TriangleAlert}
-      title="We couldn’t load this page"
-      copy={message}
-      to={null}
-    />
+    <div className="surface grid min-h-64 place-items-center p-8 text-center">
+      <div>
+        <TriangleAlert className="mx-auto text-rose-500" size={36} />
+        <h2 className="mt-4 text-lg font-bold">Unable to load data</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+          {message}
+        </p>
+        <div className="mt-5 flex items-center justify-center gap-3">
+          {onRetry && (
+            <button type="button" className="btn-secondary" onClick={onRetry}>
+              Try again
+            </button>
+          )}
+          {isAuthError ? (
+            <Link className="btn-primary" to="/login">
+              Log in again
+            </Link>
+          ) : (
+            <Link className="btn-primary" to="/practice">
+              Start practice
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import api, { setAccessToken } from "../services/api";
+import api, { onAuthFailure, refreshAuth, setAccessToken } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -14,20 +14,62 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
-    const { data } = await api.get("/auth/me");
-    setUser(data.data.user);
-    return data.data.user;
+    try {
+      const { data } = await api.get("/auth/me");
+      setUser(data.data.user);
+      return data.data.user;
+    } catch (e) {
+      setUser(null);
+      throw e;
+    }
   }, []);
 
   useEffect(() => {
-    api
-      .post("/auth/refresh")
-      .then(({ data }) => {
-        setAccessToken(data.data.accessToken);
-        return loadUser();
-      })
-      .catch(() => setAccessToken(null))
-      .finally(() => setIsLoading(false));
+    const unsubscribe = onAuthFailure(() => {
+      setUser(null);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const initAuth = async () => {
+      try {
+        const storedToken =
+          typeof window !== "undefined"
+            ? localStorage.getItem("eta_access_token")
+            : null;
+
+        if (storedToken) {
+          try {
+            await loadUser();
+            if (active) setIsLoading(false);
+            return;
+          } catch {
+            // Stored token might be expired; attempt refreshAuth below
+          }
+        }
+
+        const token = await refreshAuth();
+        if (token && active) {
+          await loadUser();
+        }
+      } catch {
+        if (active) {
+          setAccessToken(null);
+          setUser(null);
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      active = false;
+    };
   }, [loadUser]);
 
   const login = async (values) => {
@@ -36,6 +78,7 @@ export function AuthProvider({ children }) {
     setUser(data.data.user);
     return data.data.user;
   };
+
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -44,7 +87,9 @@ export function AuthProvider({ children }) {
       setUser(null);
     }
   };
+
   const updateUser = (next) => setUser(next);
+
   return (
     <AuthContext.Provider
       value={{ user, isLoading, login, logout, loadUser, updateUser }}
@@ -53,4 +98,6 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
 export const useAuth = () => useContext(AuthContext);
+

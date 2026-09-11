@@ -91,12 +91,12 @@ export default function DashboardPage() {
           {error}
         </p>
       )}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
       </section>
-      <section className="mt-7 grid gap-7 xl:grid-cols-[1.45fr_.85fr]">
+      <section className="mt-7 grid gap-7 lg:grid-cols-[1.4fr_1fr] xl:grid-cols-[1.55fr_.85fr]">
         <div className="surface p-5 sm:p-7">
           <div className="flex items-center justify-between">
             <div>
@@ -236,20 +236,32 @@ export default function DashboardPage() {
           </Link>
         </div>
         {overview?.recentSessions?.length ? (
-          <div className="mt-5 divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="mt-5 divide-y divide-slate-100 dark:divide-slate-800/80">
             {overview.recentSessions.map((session) => (
               <Link
-                className="flex items-center justify-between py-4 first:pt-0 hover:text-lavender"
+                className="flex items-center justify-between py-4 first:pt-0 hover:text-lavender group transition"
                 key={session.id}
                 to={`/history/${session.id}`}
               >
-                <span>
-                  <b className="block">{session.label}</b>
-                  <small className="text-slate-500">
-                    {formatDuration(session.duration)} · {session.date}
-                  </small>
-                </span>
-                <b>{session.score}/100</b>
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-lavender font-bold text-xs dark:bg-indigo-950/60">
+                    {session.label?.slice(0, 2)?.toUpperCase() || "PR"}
+                  </span>
+                  <span>
+                    <b className="block group-hover:text-lavender transition">{session.label}</b>
+                    <small className="text-slate-400">
+                      {formatDuration(session.duration)} · {session.date}
+                    </small>
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="rounded-full bg-mint/10 px-3 py-1 text-xs font-bold text-mint">
+                    {session.score}/100
+                  </span>
+                  <span className="hidden sm:inline-block text-xs font-semibold text-lavender group-hover:underline">
+                    Review →
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
