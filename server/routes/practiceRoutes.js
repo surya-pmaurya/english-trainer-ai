@@ -1,0 +1,14 @@
+import { Router } from 'express';
+import * as controller from '../controllers/practiceController.js';
+import { requireAuth } from '../middleware/auth.js';
+import { aiLimiter } from '../middleware/limits.js';
+import { validate } from '../middleware/validate.js';
+import { completeSchema, messageSchema, startSchema } from '../validators/practiceValidators.js';
+const router = Router();
+router.use(requireAuth);
+router.post('/start', validate(startSchema), controller.startSession);
+router.post('/message', aiLimiter, validate(messageSchema), controller.sendMessage);
+router.post('/complete', validate(completeSchema), controller.completeSession);
+router.get('/history', controller.listHistory);
+router.get('/:id', controller.getSession);
+export default router;
