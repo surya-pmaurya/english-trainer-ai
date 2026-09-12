@@ -1,5 +1,4 @@
 import LearningActivity from "../models/LearningActivity.js";
-import User from "../models/User.js";
 const localDate = (timezone) =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone || "UTC",

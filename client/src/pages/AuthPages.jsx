@@ -6,7 +6,6 @@ import {
   EyeOff,
   LoaderCircle,
   Mail,
-  ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -24,16 +23,102 @@ const password = z
   .regex(/\d/, "Include a number.");
 function AuthLayout({ title, subtitle, children }) {
   return (
-    <div className="min-h-screen bg-slate-50 px-5 py-6 dark:bg-slate-950 sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <Brand />
-        <div className="mx-auto mt-10 max-w-md">
-          <div className="surface p-6 sm:p-8">
-            <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {subtitle}
-            </p>
-            {children}
+    <div className="min-h-screen bg-slate-50 px-5 py-6 dark:bg-slate-950 sm:px-8 lg:py-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex items-center justify-between">
+          <Brand />
+        </div>
+
+        <div className="mt-6 lg:mt-10 lg:grid lg:grid-cols-12 lg:gap-12 lg:items-center">
+          {/* Form column */}
+          <div className="w-full max-w-md mx-auto lg:col-span-5 xl:col-span-5 lg:mx-0">
+            <div className="surface p-6 sm:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{title}</h1>
+              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {subtitle}
+              </p>
+              {children}
+            </div>
+          </div>
+
+          {/* Desktop Showcase column */}
+          <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 flex-col justify-between rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-10 text-white shadow-2xl border border-indigo-800/40 relative overflow-hidden min-h-[580px]">
+            {/* Background decorative elements */}
+            <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-lavender/20 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-mint/15 blur-3xl pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-indigo-200 backdrop-blur-md border border-white/10">
+                <span className="h-2 w-2 rounded-full bg-mint animate-pulse" />
+                Next-Gen English Immersion
+              </div>
+
+              <h2 className="mt-6 text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                Speak fluent English with <br className="hidden xl:inline" />
+                <span className="bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">
+                  real-time AI feedback.
+                </span>
+              </h2>
+
+              <p className="mt-4 text-base text-indigo-200/80 max-w-lg leading-relaxed">
+                Practice daily conversations, get instant grammar explanations, and expand your vocabulary with a 24/7 personalized AI tutor.
+              </p>
+
+              {/* Live Interactive Sample Card */}
+              <div className="mt-8 space-y-3 rounded-2xl bg-white/5 p-5 backdrop-blur-lg border border-white/10 max-w-lg">
+                <div className="flex items-center justify-between text-xs text-indigo-300 font-medium">
+                  <span>Live Feedback Preview</span>
+                  <span className="rounded-full bg-mint/20 px-2 py-0.5 text-mint font-semibold">CEFR A1 - C2</span>
+                </div>
+
+                <div className="rounded-xl bg-slate-900/60 p-3 text-xs border border-white/5">
+                  <span className="font-semibold text-rose-300 block mb-1">What you say:</span>
+                  <p className="text-slate-300 italic">&ldquo;I have visited yesterday the museum with my friends.&rdquo;</p>
+                </div>
+
+                <div className="rounded-xl bg-indigo-950/70 p-3.5 text-xs border border-indigo-500/30">
+                  <div className="flex items-center gap-1.5 text-emerald-300 font-semibold mb-1">
+                    <CheckCircle2 size={14} />
+                    <span>Better Phrasing:</span>
+                  </div>
+                  <p className="text-white font-medium">&ldquo;I visited the museum with my friends yesterday.&rdquo;</p>
+                  <p className="mt-1 text-[11px] text-indigo-200/70">
+                    Rule: Use past simple instead of present perfect when specifying finished time expressions like &apos;yesterday&apos;.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                  <div className="rounded-lg bg-white/5 p-2 border border-white/5">
+                    <span className="block text-[10px] text-indigo-300 uppercase font-semibold">Grammar</span>
+                    <span className="text-sm font-bold text-emerald-400">94%</span>
+                  </div>
+                  <div className="rounded-lg bg-white/5 p-2 border border-white/5">
+                    <span className="block text-[10px] text-indigo-300 uppercase font-semibold">Vocabulary</span>
+                    <span className="text-sm font-bold text-sky-400">89%</span>
+                  </div>
+                  <div className="rounded-lg bg-white/5 p-2 border border-white/5">
+                    <span className="block text-[10px] text-indigo-300 uppercase font-semibold">Fluency</span>
+                    <span className="text-sm font-bold text-indigo-300">92%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom social proof */}
+            <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-indigo-200/80">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  <div className="h-7 w-7 rounded-full bg-indigo-400/80 border-2 border-slate-900 flex items-center justify-center font-bold text-[10px] text-slate-900">A</div>
+                  <div className="h-7 w-7 rounded-full bg-emerald-400/80 border-2 border-slate-900 flex items-center justify-center font-bold text-[10px] text-slate-900">K</div>
+                  <div className="h-7 w-7 rounded-full bg-purple-400/80 border-2 border-slate-900 flex items-center justify-center font-bold text-[10px] text-slate-900">M</div>
+                  <div className="h-7 w-7 rounded-full bg-amber-400/80 border-2 border-slate-900 flex items-center justify-center font-bold text-[10px] text-slate-900">+</div>
+                </div>
+                <span>Joined by 10,000+ confident English speakers</span>
+              </div>
+              <div className="flex items-center gap-1 text-amber-300 font-semibold">
+                <span>★ 4.9/5 Rating</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -176,7 +261,7 @@ export function RegisterPage() {
       message: "Passwords do not match.",
     });
   const form = useForm({ resolver: zodResolver(schema) });
-  const submit = async ({ confirmPassword, ...values }) => {
+  const submit = async ({...values }) => {
     setServerError("");
     try {
       await api.post("/auth/register", values);
@@ -241,13 +326,12 @@ export function RegisterPage() {
 export function VerifyEmailPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [state, setState] = useState("idle");
   const token = params.get("token");
   const email = params.get("email");
+  const [state, setState] = useState(token ? "loading" : "idle");
   useEffect(() => {
     if (!token) return;
     let active = true;
-    setState("loading");
     api
       .post("/auth/verify-email", { token })
       .then(() => active && setState("success"))

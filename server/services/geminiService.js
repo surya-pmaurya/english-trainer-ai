@@ -47,49 +47,76 @@ function tutorPrompt({ user, type, messages, weaknesses }) {
     .join("\n")}`;
 }
 function extractJson(text) {
-  const trimmed = text
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/\s*```$/, "");
-  return JSON.parse(trimmed);
+  let clean = text.trim();
+  const firstBrace = clean.indexOf("{");
+  const lastBrace = clean.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    clean = clean.slice(firstBrace, lastBrace + 1);
+  }
+  try {
+    return JSON.parse(clean);
+  } catch {
+    const relaxed = clean
+      .replace(/,\s*([}\]])/g, "$1")
+      .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+    return JSON.parse(relaxed);
+  }
 }
 export async function getTutorResponse({ user, type, messages, weaknesses }) {
   if (!env.geminiKey) return FALLBACK;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(env.geminiModel)}:generateContent?key=${encodeURIComponent(env.geminiKey)}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: tutorPrompt({ user, type, messages, weaknesses }) },
-            ],
+  const candidateModels = [
+    env.geminiModel,
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.6-flash",
+  ].filter(Boolean);
+  const modelsToTry = [...new Set(candidateModels)];
+
+  for (const model of modelsToTry) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.geminiKey)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: tutorPrompt({ user, type, messages, weaknesses }) },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.45,
+            maxOutputTokens: 2048,
+            responseMimeType: "application/json",
           },
-        ],
-        generationConfig: {
-          temperature: 0.45,
-          maxOutputTokens: 1000,
-          responseMimeType: "application/json",
-        },
-      }),
-    });
-    if (!response.ok)
-      throw new Error(`Gemini request failed: ${response.status}`);
-    const payload = await response.json();
-    const text = payload.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
-      .join("");
-    return responseSchema.parse(extractJson(text));
-  } catch (error) {
-    console.error("Gemini service unavailable:", error.message);
-    return FALLBACK;
-  } finally {
-    clearTimeout(timeout);
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.warn(
+          `[Gemini] ${model} failed (${response.status}):`,
+          errorData?.error?.message || response.statusText,
+        );
+        continue;
+      }
+      const payload = await response.json();
+      const text = payload.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        .join("");
+      return responseSchema.parse(extractJson(text));
+    } catch (error) {
+      console.warn(`[Gemini] Error with ${model}:`, error.message);
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+
+  console.error("Gemini service unavailable on all attempted models.");
+  return FALLBACK;
 }
