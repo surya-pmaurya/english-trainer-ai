@@ -25,7 +25,7 @@ export const env = {
     "development-secret-change-before-production",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   geminiKey: process.env.GEMINI_API_KEY,
-  geminiModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
   smtp: {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),

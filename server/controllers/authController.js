@@ -30,7 +30,7 @@ function issueAccessAndRefresh(res, user) {
   const refreshToken = createOpaqueToken();
   user.refreshSessions = (user.refreshSessions || [])
     .filter((session) => session.expiresAt > new Date())
-    .slice(-4);
+    .slice(-7);
   user.refreshSessions.push({
     tokenHash: hashToken(refreshToken),
     expiresAt: refreshExpiry(),
@@ -161,18 +161,27 @@ export async function refresh(req, res, next) {
     const user = await User.findOne({
       "refreshSessions.tokenHash": tokenHash,
     }).select("+refreshSessions");
-    const session = user?.refreshSessions.find(
+    const session = user?.refreshSessions?.find(
       (item) => item.tokenHash === tokenHash && item.expiresAt > new Date(),
     );
     if (!user || !session) {
       res.clearCookie("eta_refresh", clearCookieOptions);
       return fail(res, 401, "Your session has expired.", "UNAUTHENTICATED");
     }
-    user.refreshSessions = user.refreshSessions.filter(
-      (item) => item.tokenHash !== tokenHash,
-    );
+
+    // Keep consumed token valid for a 60-second grace window to absorb
+    // concurrent/duplicate browser requests without destroying the session
+    session.expiresAt = new Date(Date.now() + 60 * 1000);
+
     const accessToken = issueAccessAndRefresh(res, user);
-    await user.save();
+    try {
+      await user.save();
+    } catch (saveError) {
+      if (saveError.name === "VersionError") {
+        return ok(res, { accessToken: signAccessToken(user.id) });
+      }
+      throw saveError;
+    }
     return ok(res, { accessToken });
   } catch (error) {
     next(error);
