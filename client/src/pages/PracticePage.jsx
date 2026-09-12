@@ -1,6 +1,5 @@
 import {
   Activity,
-  Award,
   BookOpen,
   Bot,
   CheckCircle2,
@@ -13,10 +12,9 @@ import {
   Send,
   Sparkles,
   Volume2,
-  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeading from "../components/ui/PageHeading";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import api, { getErrorMessage } from "../services/api";
@@ -103,9 +101,6 @@ export default function PracticePage() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setMessages([]);
-    setError("");
     api
       .post("/practice/start", { type: mode })
       .then(({ data }) => {

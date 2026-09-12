@@ -1,10 +1,6 @@
 import {
-  Award,
-  BarChart3,
   BookOpen,
-  Check,
   ChevronRight,
-  Clock3,
   Flame,
   History,
   Lightbulb,
@@ -52,7 +48,10 @@ function useData(url) {
       .catch((e) => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
   };
-  useEffect(reload, [url]);
+  useEffect((reload) => {
+    const timeoutId = setTimeout(reload, 0);
+    return () => clearTimeout(timeoutId);
+  }, [url]);
   return { data, error, loading, reload, setData };
 }
 const scoreColor = (value) =>

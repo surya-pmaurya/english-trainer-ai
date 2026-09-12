@@ -6,7 +6,6 @@ import {
   EyeOff,
   LoaderCircle,
   Mail,
-  ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -262,7 +261,7 @@ export function RegisterPage() {
       message: "Passwords do not match.",
     });
   const form = useForm({ resolver: zodResolver(schema) });
-  const submit = async ({ confirmPassword, ...values }) => {
+  const submit = async ({...values }) => {
     setServerError("");
     try {
       await api.post("/auth/register", values);
@@ -327,13 +326,12 @@ export function RegisterPage() {
 export function VerifyEmailPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [state, setState] = useState("idle");
   const token = params.get("token");
   const email = params.get("email");
+  const [state, setState] = useState(token ? "loading" : "idle");
   useEffect(() => {
     if (!token) return;
     let active = true;
-    setState("loading");
     api
       .post("/auth/verify-email", { token })
       .then(() => active && setState("success"))
