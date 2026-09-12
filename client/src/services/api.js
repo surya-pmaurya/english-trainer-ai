@@ -78,13 +78,9 @@ api.interceptors.response.use(
       throw error;
     }
     request._retried = true;
-    try {
-      const token = await refreshAuth();
-      request.headers.Authorization = `Bearer ${token}`;
-      return api(request);
-    } catch (refreshError) {
-      throw refreshError;
-    }
+    const token = await refreshAuth();
+    request.headers.Authorization = `Bearer ${token}`;
+    return api(request);
   },
 );
 

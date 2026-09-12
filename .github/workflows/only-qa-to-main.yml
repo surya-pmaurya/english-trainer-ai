@@ -1,0 +1,22 @@
+name: Only QA to Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-source-branch:
+    name: Validate QA Source Branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check source branch
+        run: |
+          if [ "${{ github.head_ref }}" != "qa" ]; then
+            echo "❌ Only the qa branch is allowed to merge into main."
+            echo "Current source branch: ${{ github.head_ref }}"
+            exit 1
+          fi
+
+          echo "✅ Source branch is qa. Merge to main is allowed."
